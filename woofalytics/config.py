@@ -33,7 +33,7 @@ class AppConfig:
     )
     clip_pre_seconds: float = float(os.getenv("WOOF_CLIP_PRE_SECONDS", "8"))
     clip_post_seconds: float = float(os.getenv("WOOF_CLIP_POST_SECONDS", "8"))
-    bark_threshold: float = float(os.getenv("WOOF_BARK_THRESHOLD", "0.35"))
+    bark_threshold: float = float(os.getenv("WOOF_BARK_THRESHOLD", "0.55"))
     trigger_cooldown_seconds: float = float(
         os.getenv("WOOF_TRIGGER_COOLDOWN_SECONDS", "8")
     )

@@ -93,7 +93,7 @@ Common ones:
 - `WOOF_FFMPEG_PATH=/usr/bin/ffmpeg`
 - `WOOF_MODEL_PATH=./models/yamnet.tflite`
 - `WOOF_EVENTS_CSV_PATH=./events/events.csv`
-- `WOOF_BARK_THRESHOLD=0.35`
+- `WOOF_BARK_THRESHOLD=0.55`
 - `WOOF_CLIP_PRE_SECONDS=8`
 - `WOOF_CLIP_POST_SECONDS=8`
 - `WOOF_TRIGGER_COOLDOWN_SECONDS=8`
