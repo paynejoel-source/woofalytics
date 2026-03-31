@@ -10,15 +10,15 @@ if TYPE_CHECKING:
 
 class EventStore:
     HEADERS = [
-        "detected_at",
-        "event_type",
-        "bark_score",
-        "thunder_score",
-        "clip_path",
+        "timestamp",
+        "event",
+        "bark_confidence",
+        "thunder_confidence",
+        "clip_name",
         "source",
-        "top_label",
-        "top_score",
-        "target_scores_json",
+        "top_class",
+        "top_confidence",
+        "class_scores_json",
     ]
 
     def __init__(self, csv_path: Path):
@@ -46,14 +46,14 @@ class EventStore:
                     )
 
                 row = {
-                    "detected_at": event.detected_at,
-                    "event_type": event.event_type,
-                    "bark_score": f"{event.bark_score:.6f}",
-                    "thunder_score": f"{event.thunder_score:.6f}",
-                    "clip_path": event.clip_path or "",
+                    "timestamp": event.detected_at,
+                    "event": event.event_type,
+                    "bark_confidence": f"{event.bark_score:.6f}",
+                    "thunder_confidence": f"{event.thunder_score:.6f}",
+                    "clip_name": Path(event.clip_path).name if event.clip_path else "",
                     "source": event.source,
-                    "top_label": top_label,
-                    "top_score": f"{float(top_score):.6f}" if top_score != "" else "",
-                    "target_scores_json": str(event.target_scores),
+                    "top_class": top_label,
+                    "top_confidence": f"{float(top_score):.6f}" if top_score != "" else "",
+                    "class_scores_json": str(event.target_scores),
                 }
                 writer.writerow(row)

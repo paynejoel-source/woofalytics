@@ -372,7 +372,7 @@
             </div>
             <div class="actions">
                 <button id="record">Capture Clip</button>
-                <button class="ghost" id="download">Download CSV</button>
+                <button class="ghost" id="download">Export Detections CSV</button>
             </div>
             <p class="muted" id="message"></p>
         </div>
@@ -396,10 +396,10 @@
             <div class="review-head">
                 <div>
                     <span class="label">Event Review</span>
-                    <div class="muted">Recent detections with score, source, and clip access.</div>
+                    <div class="muted">Recent detections with confidence, source, and clip access.</div>
                 </div>
                 <div class="actions" style="margin-top:0;">
-                    <button class="ghost" id="download-inline">Export CSV</button>
+                    <button class="ghost" id="download-inline">Export Detections CSV</button>
                 </div>
             </div>
             <div class="table-wrap">
@@ -408,9 +408,9 @@
                         <tr>
                             <th>When</th>
                             <th>Event</th>
-                            <th>Score</th>
+                            <th>Confidence</th>
                             <th>State</th>
-                            <th>Top Class</th>
+                            <th>Top Match</th>
                             <th>Source</th>
                             <th>Clip</th>
                         </tr>
@@ -520,8 +520,8 @@
             <div class="row"><span class="muted">Bark threshold</span><strong>${formatScore(status.bark_threshold)}</strong></div>
             <div class="row"><span class="muted">Thunder threshold</span><strong>${formatScore(status.thunder_threshold)}</strong></div>
             <div class="row"><span class="muted">Mode</span><strong>${status.demo_mode ? "demo" : "live"}</strong></div>
-            <div class="row"><span class="muted">Events buffered</span><strong>${(status.recent_events || []).length}</strong></div>
-            <div class="row"><span class="muted">CSV</span><strong>${status.events_csv_path || "n/a"}</strong></div>
+            <div class="row"><span class="muted">Recent detections</span><strong>${(status.recent_events || []).length}</strong></div>
+            <div class="row"><span class="muted">Export file</span><strong>${status.events_csv_path || "n/a"}</strong></div>
         `;
     }
 
