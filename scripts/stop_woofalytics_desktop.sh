@@ -3,12 +3,14 @@ set -euo pipefail
 
 ROOT="/home/joel/woofalytics"
 PID_FILE="$ROOT/.woofalytics-desktop.pid"
-PYTHON_BIN="$ROOT/venv/bin/python"
 MAIN_SCRIPT="$ROOT/main.py"
 LOG_DIR="$ROOT/logs"
 LOG_FILE="$LOG_DIR/desktop-launch.log"
+LOCK_FILE="$ROOT/.woofalytics-desktop.lock"
 
 mkdir -p "$LOG_DIR"
+exec 9>"$LOCK_FILE"
+flock 9
 
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >>"$LOG_FILE"
@@ -30,5 +32,4 @@ fi
 pkill -f "$MAIN_SCRIPT" >/dev/null 2>&1 || true
 sleep 1
 pkill -9 -f "$MAIN_SCRIPT" >/dev/null 2>&1 || true
-pkill -f "/usr/bin/ffmpeg -loglevel error -rtsp_transport tcp -i rtsp://127.0.0.1:8554/front_yard -vn -acodec pcm_s16le -ac 1 -ar 16000 -f s16le -" >/dev/null 2>&1 || true
 log "Woofalytics stop script finished"

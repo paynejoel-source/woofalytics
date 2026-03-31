@@ -7,14 +7,29 @@ OPEN_BROWSER="${WOOF_OPEN_BROWSER:-1}"
 LOG_DIR="$ROOT/logs"
 LOG_FILE="$LOG_DIR/desktop-launch.log"
 PID_FILE="$ROOT/.woofalytics-desktop.pid"
+LOCK_FILE="$ROOT/.woofalytics-desktop.lock"
 URL="http://127.0.0.1:${PORT}"
 PYTHON_BIN="$ROOT/venv/bin/python"
 MAIN_SCRIPT="$ROOT/main.py"
 
 mkdir -p "$LOG_DIR"
+exec 9>"$LOCK_FILE"
+flock -n 9 || exit 0
 
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >>"$LOG_FILE"
+}
+
+cleanup_stale_pid() {
+    if [[ ! -f "$PID_FILE" ]]; then
+        return
+    fi
+
+    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    if [[ -z "${pid}" ]] || ! kill -0 "$pid" >/dev/null 2>&1; then
+        rm -f "$PID_FILE"
+        log "Removed stale PID file"
+    fi
 }
 
 is_healthy() {
@@ -55,7 +70,7 @@ wait_for_port_release() {
 start_server() {
     cd "$ROOT"
     log "Starting Woofalytics on port ${PORT}"
-    nohup env WOOF_PORT="$PORT" "$PYTHON_BIN" "$MAIN_SCRIPT" >>"$LOG_FILE" 2>&1 &
+    setsid env WOOF_PORT="$PORT" "$PYTHON_BIN" "$MAIN_SCRIPT" >>"$LOG_FILE" 2>&1 < /dev/null &
     echo $! > "$PID_FILE"
 }
 
@@ -68,6 +83,8 @@ wait_until_healthy() {
     done
     return 1
 }
+
+cleanup_stale_pid
 
 if ! is_healthy; then
     log "Existing Woofalytics instance not healthy; restarting"
