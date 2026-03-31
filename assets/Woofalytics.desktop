@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Woofalytics
+Comment=Open the Woofalytics bark monitor
+Exec=/home/joel/woofalytics/scripts/start_woofalytics_desktop.sh
+Icon=/home/joel/woofalytics/assets/woofalytics-dog.svg
+Terminal=false
+StartupNotify=true
+Categories=Utility;

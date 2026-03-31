@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woofalytics</title>
+    <style>
+        :root {
+            --bg: #f4efe2;
+            --paper: rgba(255, 251, 242, 0.88);
+            --ink: #1f2a2c;
+            --muted: #66716f;
+            --accent: #bf5b2b;
+            --accent-strong: #8c3710;
+            --line: rgba(31, 42, 44, 0.12);
+            --safe: #2f8f5b;
+            --alert: #c94121;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top, rgba(191, 91, 43, 0.18), transparent 36%),
+                linear-gradient(180deg, #f8f2e8 0%, #efe4d3 100%);
+        }
+
+        main {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 18px;
+            padding: 28px;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: var(--paper);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 22px 40px rgba(49, 34, 22, 0.08);
+        }
+
+        .eyebrow {
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-size: 0.76rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.4rem, 6vw, 5rem);
+            line-height: 0.94;
+        }
+
+        .hero-copy {
+            max-width: 56rem;
+            font-size: 1.05rem;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .grid {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            margin-top: 18px;
+        }
+
+        .card {
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: var(--paper);
+            box-shadow: 0 16px 28px rgba(49, 34, 22, 0.05);
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .score {
+            font-size: 3.8rem;
+            line-height: 1;
+        }
+
+        .stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 18px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.42);
+        }
+
+        .banner strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .state {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            background: rgba(47, 143, 91, 0.12);
+            color: var(--safe);
+        }
+
+        .state.alert {
+            background: rgba(201, 65, 33, 0.12);
+            color: var(--alert);
+        }
+
+        canvas {
+            width: 100%;
+            height: 220px;
+            display: block;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.56), rgba(255,255,255,0.1));
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 999px;
+            background: var(--accent);
+            color: white;
+            font: inherit;
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: transform 120ms ease, background 120ms ease;
+        }
+
+        button:hover {
+            background: var(--accent-strong);
+            transform: translateY(-1px);
+        }
+
+        button.ghost {
+            background: rgba(255,255,255,0.6);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        button.ghost:hover {
+            background: rgba(255,255,255,0.92);
+        }
+
+        .meta, .scores {
+            display: grid;
+            gap: 12px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .muted { color: var(--muted); }
+
+        .status-copy {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .review-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 14px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.45);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+        }
+
+        th, td {
+            padding: 13px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.96rem;
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: rgba(255,255,255,0.6);
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.86rem;
+            background: rgba(31, 42, 44, 0.08);
+        }
+
+        .pill.alert {
+            background: rgba(201, 65, 33, 0.12);
+            color: var(--alert);
+        }
+
+        .pill.safe {
+            background: rgba(47, 143, 91, 0.12);
+            color: var(--safe);
+        }
+
+        .empty {
+            padding: 20px 4px 2px;
+            color: var(--muted);
+        }
+
+        a {
+            color: var(--accent-strong);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+            main { padding: 16px; }
+            .hero, .card {
+                padding: 18px;
+                border-radius: 18px;
+            }
+            .score { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <section class="hero">
+        <div class="eyebrow">Live Bark Monitor</div>
+        <h1>Woofalytics</h1>
+        <div class="hero-copy">
+            A focused bark monitor built on a pretrained audio model. Watch the live score, review captured events, and export detections as CSV.
+        </div>
+        <div class="banner">
+            <div>
+                <strong id="banner-title">Starting detector</strong>
+                <div class="muted" id="banner-copy">Waiting for the backend to return the first healthy status update.</div>
+            </div>
+            <div class="pill" id="banner-pill">Booting</div>
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="card">
+            <span class="label">Live Bark Score</span>
+            <div class="stack">
+                <div class="score" id="score">--</div>
+                <div class="state" id="state">Connecting</div>
+                <div class="status-copy" id="status-copy">
+                    Waiting for the first inference window.
+                </div>
+            </div>
+            <div class="actions">
+                <button id="record">Capture Clip</button>
+                <button class="ghost" id="download">Download CSV</button>
+            </div>
+            <p class="muted" id="message"></p>
+        </div>
+
+        <div class="card">
+            <span class="label">Recent Trend</span>
+            <canvas id="trend" width="720" height="220"></canvas>
+        </div>
+
+        <div class="card">
+            <span class="label">Classifier Breakdown</span>
+            <div class="scores" id="scores"></div>
+        </div>
+
+        <div class="card">
+            <span class="label">Session</span>
+            <div class="meta" id="meta"></div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="review-head">
+                <div>
+                    <span class="label">Event Review</span>
+                    <div class="muted">Recent detections with score, source, and clip access.</div>
+                </div>
+                <div class="actions" style="margin-top:0;">
+                    <button class="ghost" id="download-inline">Export CSV</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>When</th>
+                            <th>Score</th>
+                            <th>State</th>
+                            <th>Top Class</th>
+                            <th>Source</th>
+                            <th>Clip</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events-body"></tbody>
+                </table>
+            </div>
+            <div class="empty" id="events-empty">No bark events captured yet.</div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const scoreEl = document.getElementById("score");
+    const stateEl = document.getElementById("state");
+    const scoresEl = document.getElementById("scores");
+    const metaEl = document.getElementById("meta");
+    const eventsBodyEl = document.getElementById("events-body");
+    const eventsEmptyEl = document.getElementById("events-empty");
+    const messageEl = document.getElementById("message");
+    const statusCopyEl = document.getElementById("status-copy");
+    const bannerTitleEl = document.getElementById("banner-title");
+    const bannerCopyEl = document.getElementById("banner-copy");
+    const bannerPillEl = document.getElementById("banner-pill");
+    const trendCanvas = document.getElementById("trend");
+    const trendCtx = trendCanvas.getContext("2d");
+    const history = [];
+    let hasConnected = false;
+
+    function formatScore(value) {
+        return Number(value || 0).toFixed(3);
+    }
+
+    function formatTimestamp(value) {
+        if (!value) {
+            return "n/a";
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.valueOf())) {
+            return value;
+        }
+        return parsed.toLocaleString();
+    }
+
+    function drawTrend(threshold) {
+        const { width, height } = trendCanvas;
+        trendCtx.clearRect(0, 0, width, height);
+        trendCtx.fillStyle = "rgba(255,255,255,0.35)";
+        trendCtx.fillRect(0, 0, width, height);
+
+        trendCtx.strokeStyle = "rgba(31, 42, 44, 0.18)";
+        trendCtx.lineWidth = 1;
+        for (let i = 1; i < 4; i++) {
+            const y = (height / 4) * i;
+            trendCtx.beginPath();
+            trendCtx.moveTo(0, y);
+            trendCtx.lineTo(width, y);
+            trendCtx.stroke();
+        }
+
+        if (typeof threshold === "number") {
+            trendCtx.strokeStyle = "rgba(201, 65, 33, 0.65)";
+            trendCtx.lineWidth = 2;
+            const y = height - threshold * height;
+            trendCtx.beginPath();
+            trendCtx.moveTo(0, y);
+            trendCtx.lineTo(width, y);
+            trendCtx.stroke();
+        }
+
+        if (history.length < 2) {
+            return;
+        }
+
+        trendCtx.strokeStyle = "#bf5b2b";
+        trendCtx.lineWidth = 3;
+        trendCtx.beginPath();
+        history.forEach((value, index) => {
+            const x = (index / (history.length - 1)) * width;
+            const y = height - Math.max(0, Math.min(1, value)) * height;
+            if (index === 0) {
+                trendCtx.moveTo(x, y);
+            } else {
+                trendCtx.lineTo(x, y);
+            }
+        });
+        trendCtx.stroke();
+    }
+
+    function renderScores(targetScores) {
+        const entries = Object.entries(targetScores || {}).sort((a, b) => b[1] - a[1]);
+        scoresEl.innerHTML = entries.length
+            ? entries.map(([name, score]) => `
+                <div class="row">
+                    <span>${name}</span>
+                    <strong>${formatScore(score)}</strong>
+                </div>`).join("")
+            : `<div class="muted">No inference yet.</div>`;
+    }
+
+    function renderMeta(status) {
+        metaEl.innerHTML = `
+            <div class="row"><span class="muted">Updated</span><strong>${formatTimestamp(status.detected_at)}</strong></div>
+            <div class="row"><span class="muted">Threshold</span><strong>${formatScore(status.threshold)}</strong></div>
+            <div class="row"><span class="muted">Mode</span><strong>${status.demo_mode ? "demo" : "live"}</strong></div>
+            <div class="row"><span class="muted">Events buffered</span><strong>${(status.recent_events || []).length}</strong></div>
+            <div class="row"><span class="muted">CSV</span><strong>${status.events_csv_path || "n/a"}</strong></div>
+        `;
+    }
+
+    function bestClass(event) {
+        const entries = Object.entries(event.target_scores || {}).sort((a, b) => b[1] - a[1]);
+        return entries.length ? `${entries[0][0]} ${formatScore(entries[0][1])}` : "n/a";
+    }
+
+    function renderEvents(events) {
+        if (!events || !events.length) {
+            eventsBodyEl.innerHTML = "";
+            eventsEmptyEl.style.display = "block";
+            return;
+        }
+
+        eventsEmptyEl.style.display = "none";
+        eventsBodyEl.innerHTML = events.map((event) => `
+            <tr>
+                <td>${formatTimestamp(event.detected_at)}</td>
+                <td><strong>${formatScore(event.bark_score)}</strong></td>
+                <td><span class="pill ${event.bark_score >= 0.5 ? "alert" : "safe"}">${event.bark_score >= 0.5 ? "Strong" : "Weak"}</span></td>
+                <td>${bestClass(event)}</td>
+                <td>${event.source}</td>
+                <td>${event.clip_path ? `<a href="/${event.clip_path}" target="_blank" rel="noopener">Open clip</a>` : `<span class="muted">saving…</span>`}</td>
+            </tr>
+        `).join("");
+    }
+
+    function renderHealth(status) {
+        if (!hasConnected) {
+            bannerTitleEl.textContent = "Starting detector";
+            bannerCopyEl.textContent = "Waiting for the first healthy response from the local service.";
+            bannerPillEl.textContent = "Booting";
+            bannerPillEl.className = "pill";
+            stateEl.textContent = "Connecting";
+            stateEl.className = "state";
+            statusCopyEl.textContent = "Warming up the model and audio stream.";
+            return;
+        }
+
+        if (status.is_bark) {
+            bannerTitleEl.textContent = "Bark activity detected";
+            bannerCopyEl.textContent = "The latest inference crossed the trigger threshold. Review recent events below.";
+            bannerPillEl.textContent = "Active";
+            bannerPillEl.className = "pill alert";
+            stateEl.textContent = "Bark Detected";
+            stateEl.className = "state alert";
+            statusCopyEl.textContent = "Live inference is healthy and currently above threshold.";
+            return;
+        }
+
+        bannerTitleEl.textContent = "Detector healthy";
+        bannerCopyEl.textContent = "The backend is responding and the live bark score is currently below threshold.";
+        bannerPillEl.textContent = status.demo_mode ? "Demo" : "Live";
+        bannerPillEl.className = "pill safe";
+        stateEl.textContent = "Quiet";
+        stateEl.className = "state";
+        statusCopyEl.textContent = "The system is running normally. Quiet means no current bark trigger, not a failed backend.";
+    }
+
+    function renderDisconnected(error) {
+        scoreEl.textContent = "--";
+        stateEl.textContent = "Backend Unavailable";
+        stateEl.className = "state alert";
+        statusCopyEl.textContent = "The browser could not get a fresh status update.";
+        bannerTitleEl.textContent = "Backend not responding";
+        bannerCopyEl.textContent = "The page loaded, but the local service did not return status in time.";
+        bannerPillEl.textContent = "Offline";
+        bannerPillEl.className = "pill alert";
+        messageEl.textContent = error.message;
+    }
+
+    async function refresh() {
+        const response = await fetch("/api/status");
+        const status = await response.json();
+        hasConnected = true;
+
+        scoreEl.textContent = formatScore(status.bark_score);
+        history.push(Number(status.bark_score || 0));
+        if (history.length > 80) {
+            history.shift();
+        }
+
+        renderHealth(status);
+        drawTrend(Number(status.threshold || 0));
+        renderScores(status.target_scores);
+        renderMeta(status);
+        renderEvents(status.recent_events);
+        messageEl.textContent = "";
+    }
+
+    document.getElementById("record").addEventListener("click", async () => {
+        const response = await fetch("/api/record", { method: "POST" });
+        const payload = await response.json();
+        messageEl.textContent = payload.message || "Clip requested.";
+    });
+
+    function openCsv() {
+        window.location.href = "/api/events.csv";
+    }
+
+    document.getElementById("download").addEventListener("click", openCsv);
+    document.getElementById("download-inline").addEventListener("click", openCsv);
+
+    refresh().catch((error) => {
+        renderDisconnected(error);
+    });
+    setInterval(() => refresh().catch((error) => {
+        renderDisconnected(error);
+    }), 1000);
+</script>
+</body>
+</html>

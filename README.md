@@ -1,81 +1,122 @@
-# woofalytics
-AI Powered Woof Analytics!
+# Woofalytics
 
-This project utilises a Raspberry Pi and a microphone array to identify dog barks and direction of arrival. It includes a straightforward pre-trained model, but you also have the option to customise and train it to meet your specific needs.
+Woofalytics is now a small bark-detection runtime built around a pretrained audio-event model instead of a custom training prototype.
 
-The primary motivation behind this project was to differentiate between our neighbor's dog's barking and our own dog's vocalisations. The issue I aimed to address was as follows: when our neighbor's dog barked, it triggered our dog to respond with barking, leading to an incessant cycle of noise. To disrupt this pattern, some dog trainers recommended providing our dog with treats when the neighbor's dog barked, diverting his attention to something more exciting (such as eating treats) instead of barking in response. To accomplish this, I developed this project and further automated it automatic treat dispensers (which are not included in this repo), and it has proven to be remarkably effective, almost like magic!
+The scope is intentionally narrow:
 
-# Hardware Setup
-I deployed this solution on a Raspberry Pi 4 computer equipped with a dual-channel microphone array. The Raspberry Pi is running the 64-bit version of the Raspberry Pi OS. The microphone array utilised in this setup is manufactured by Andrea Electronics. It is a linear array of two microphones. For additional information about the microphone, please visit the [Andrea Electronics website](https://andreaelectronics.com/array-microphone/).
-A sample photo of the micrphone array:
-![PureAudio™ USB Array Microphone](https://andreaelectronics.com/wp-content/uploads/2020/09/Andrea-PureAudio-New-USB-Array-Microphone-1024x424-1.jpg)
+- detect barking in live audio
+- save clips around bark events
+- expose a simple local dashboard and JSON API
+- export bark events as CSV
+- optionally trigger IFTTT when bark events fire
 
-The reason for using this microphone array is that it doesn't require any driver installation on the Raspberry Pi 4 (I used 64-bit version of the Raspberry Pi OS).
+It does not try to classify breed, identity, or emotion.
 
-# Software Setup
+## Architecture
 
-First install a few packages for audio capture on the Pi OS:
+The runtime is built around a YAMNet-style bark detector:
+
+- live audio capture from the same PoE camera RTSP stream used by BirdNET-Go
+- LiteRT (`ai-edge-litert`) for lightweight TFLite inference
+- sliding inference window at 16 kHz mono
+- pretrained bark-class score thresholding
+- cooldown gate to avoid trigger spam
+- clip capture with pre-roll and post-roll audio
+- local HTTP dashboard and `/api/status` endpoint
+- CSV export at `/api/events.csv`
+
+## Dependencies
+
+Install system audio packages first:
 
 ```shell
-# This is tested on Raspberry Pi OS (Debian GNU/Linux 11 (bullseye) / aarch64)
-$ sudo apt update
-$ sudo apt install \
-    build-essential \
-    libportaudio2 \
-    libasound2-dev \
-    libusb-1.0-0-dev \
-    python3-pyaudio
+sudo apt update
+sudo apt install build-essential libportaudio2 libasound2-dev python3-pyaudio
 ```
 
-The code is based on Python. Continue installing the rest of the dependency packages:
+`ffmpeg` is also required for RTSP ingest. BirdNET-Go is already configured on this machine to use:
+
+```text
+rtsp://127.0.0.1:8554/front_yard
+```
+
+Create a virtualenv:
+
 ```shell
-$ pip install -r requirements.txt
+/usr/bin/python3 -m venv venv
+source venv/bin/activate
 ```
 
-And to run the main code, just run `main.py`:
+Install dependencies:
+
 ```shell
-$ python main.py
+pip install -r requirements.txt
 ```
 
-If all packages are installed and there are no other problems, you should see some messages like:
-```
-INFO:Main:Starting Woofalytics server, press Ctrl+C to stop...
-INFO:Woofalytics:Starting recording loop...
-DEBUG:Woofalytics:Clip past context seconds: 15, number of frames: 3000
-DEBUG:Woofalytics:Clip future context seconds: 15, number of frames: 3000
-Starting server on port 8000...
-INFO:Woofalytics:Window len #samples: 264, overlap #samples: 132
-[2023-10-03T22:46:37.611563, 090, 090, 090]: Not barking: 0.007565224077552557
-```
-the last line shows direction of arrival of the audio to the microphone array estimated using three different algorithms (hence three times `090`), followed by probability of barking, which in this case is almost zero. It should keep showing the bark probability in realtime:
+Download the pretrained YAMNet TFLite model:
 
-![main script](misc/main-script.gif)
-
-## Web Interface
-If you want to see a visualisation of bark probabilities in real-time, you can navigate to `http://127.0.0.1:8000` and you should see a screen similar to this:
-![Bark Probability Visualisation](misc/home-page-bark-plot.gif)
-
-There are a few more endpoints, such as `/api/bark` which will return a JSON struct containing the bark probablity in realtime:
-```json
-{
-    "datetime": "2023-10-03T23:44:52.168245", 
-    "bark_probability": 0.0724762910977006
-}
-```
- This can be used for further automation. In case you would like this setup to be used for data collection (i.e. recording your own dog barks), you can navigate to `/rec` and will see a `Record` button that will store an audio clip from 30 seconds before the time you pressed the record button for another 30 seconds (you can configure all these values in the `record.py` file). This can later be used for training your own model if you want to distinguish different dog barks from each other. But be prepared to record and label at least tens of hours of data before getting anything useful! 
-
-## IFTTT Integration
-If you want to trigger some actions when a dog bark is detected, you can use the IFTTT integration. You just need to update `record.py` and set these two values:
-```python
-IFTTT_EVENT_NAME = "woof"
-IFTTT_KEY = "YOUR_IFTTT_WEBHOOKS_KEY"
+```shell
+python scripts/download_yamnet.py
 ```
 
-it uses WebHooks and you can further automate actions using this trigger. Any smart device that works with IFTTT can be used, such as [Aqara Smart Pet Feeder C1](https://www.aqara.com/eu/product/smart-pet-feeder-c1/) which I initially used for my project. Sample notifications from IFTTT integration:
+Run a quick diagnostic:
 
-![IFTTT Notifications](misc/ifttt-notifications.jpg)
+```shell
+python scripts/check_setup.py
+```
 
-# Re-training the Model
-Please refer to the `notebooks/woofalytics-model.ipynb` notebook for additional information. Everything should be fairly self-explanatory there, although it may appear a bit disorganised. I've also included some sample recordings to ensure that you can run the notebook without any issues.
+If you only want to review the UI or smoke-test the app path without audio hardware, run demo mode:
 
-At its core, the model is simple feed-forward neural network with 2 hidden layers and a sigmoid output emitting probability of barking for its input. The inputs are 80-dimensional log Mel filterbanks extracted from 60ms of audio. The network is small enough to work in realtime without consuming too much memory or power.
+```shell
+WOOF_DEMO_MODE=1 python main.py
+```
+
+## Running
+
+Start the monitor:
+
+```shell
+python main.py
+```
+
+Open the dashboard at `http://127.0.0.1:8015` if you use the Desktop launcher, or at the port you set in `WOOF_PORT`.
+
+## Configuration
+
+The runtime is configured with environment variables.
+
+Common ones:
+
+- `WOOF_PORT=8015`
+- `WOOF_AUDIO_SOURCE=ffmpeg`
+- `WOOF_STREAM_URL=rtsp://127.0.0.1:8554/front_yard`
+- `WOOF_FFMPEG_PATH=/usr/bin/ffmpeg`
+- `WOOF_MODEL_PATH=./models/yamnet.tflite`
+- `WOOF_EVENTS_CSV_PATH=./events/events.csv`
+- `WOOF_BARK_THRESHOLD=0.35`
+- `WOOF_CLIP_PRE_SECONDS=8`
+- `WOOF_CLIP_POST_SECONDS=8`
+- `WOOF_TRIGGER_COOLDOWN_SECONDS=8`
+- `WOOF_DEVICE_NAME_HINT=Andrea PureAudio`
+- `WOOF_INPUT_DEVICE_INDEX=2`
+- `WOOF_IFTTT_EVENT_NAME=woof`
+- `WOOF_IFTTT_KEY=...`
+- `WOOF_DEMO_MODE=1`
+
+## API
+
+`GET /api/status`
+
+Returns the latest bark score, threshold, bark-state flag, bark-adjacent target scores, and recent events.
+
+`POST /api/record`
+
+Queues a manual clip capture using the current pre-roll and post-roll settings.
+
+`GET /api/events.csv`
+
+Downloads the accumulated bark event log as CSV.
+
+## Repo Cleanup
+
+The old Torch model files, notebook workflow, and handwritten direction-of-arrival code are no longer part of the runtime design. If you still want a research or training workflow later, it should live in a separate training package instead of the production detector.

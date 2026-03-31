@@ -161,3 +161,10 @@ cython_debug/
 
 # Mac .DS_Store
 .DS_Store
+
+# Runtime artifacts
+clips/
+events/
+logs/
+models/*.tflite
+.woofalytics-desktop.pid

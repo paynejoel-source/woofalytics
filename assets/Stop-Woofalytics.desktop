@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stop Woofalytics
+Comment=Stop the Woofalytics monitor service
+Exec=/bin/bash -lc "/home/joel/woofalytics/scripts/stop_woofalytics_desktop.sh"
+Path=/home/joel/woofalytics
+Icon=process-stop
+Terminal=false
+StartupNotify=true
+Categories=Utility;
