@@ -34,6 +34,7 @@ class AppConfig:
     clip_pre_seconds: float = float(os.getenv("WOOF_CLIP_PRE_SECONDS", "8"))
     clip_post_seconds: float = float(os.getenv("WOOF_CLIP_POST_SECONDS", "8"))
     bark_threshold: float = float(os.getenv("WOOF_BARK_THRESHOLD", "0.55"))
+    thunder_threshold: float = float(os.getenv("WOOF_THUNDER_THRESHOLD", "0.55"))
     trigger_cooldown_seconds: float = float(
         os.getenv("WOOF_TRIGGER_COOLDOWN_SECONDS", "8")
     )
@@ -52,6 +53,11 @@ class AppConfig:
     def bark_class_indices(self) -> tuple[int, ...]:
         # YAMNet AudioSet label indices for bark-adjacent dog vocalizations.
         return (70, 71, 72, 73, 74, 75, 76)
+
+    @property
+    def thunder_class_indices(self) -> tuple[int, ...]:
+        # YAMNet AudioSet label indices for thunder sounds.
+        return (280, 281)
 
     @property
     def inference_window_samples(self) -> int:

@@ -73,6 +73,36 @@
             margin-top: 18px;
         }
 
+        .live-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mini-score {
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.42);
+        }
+
+        .mini-score.alert {
+            border-color: rgba(201, 65, 33, 0.26);
+            background: rgba(201, 65, 33, 0.08);
+        }
+
+        .mini-score.storm {
+            border-color: rgba(48, 80, 148, 0.28);
+            background:
+                linear-gradient(180deg, rgba(136, 157, 210, 0.18), rgba(87, 116, 184, 0.08)),
+                rgba(255,255,255,0.42);
+            box-shadow: inset 0 0 0 1px rgba(48, 80, 148, 0.05);
+        }
+
+        .mini-score .score {
+            font-size: 2.6rem;
+        }
+
         .card {
             padding: 22px;
             border: 1px solid var(--line);
@@ -132,6 +162,11 @@
         .state.alert {
             background: rgba(201, 65, 33, 0.12);
             color: var(--alert);
+        }
+
+        .state.storm {
+            background: rgba(67, 97, 168, 0.14);
+            color: #305094;
         }
 
         canvas {
@@ -257,6 +292,17 @@
             color: var(--alert);
         }
 
+        .pill.storm {
+            background: rgba(67, 97, 168, 0.14);
+            color: #305094;
+        }
+
+        .storm-copy {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #305094;
+        }
+
         .pill.safe {
             background: rgba(47, 143, 91, 0.12);
             color: var(--safe);
@@ -283,16 +329,17 @@
                 border-radius: 18px;
             }
             .score { font-size: 3rem; }
+            .live-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 <main>
     <section class="hero">
-        <div class="eyebrow">Live Bark Monitor</div>
+        <div class="eyebrow">Live Bark And Thunder Monitor</div>
         <h1>Woofalytics</h1>
         <div class="hero-copy">
-            A focused bark monitor built on a pretrained audio model. Watch the live score, review captured events, and export detections as CSV.
+            A dog-first audio monitor built on a pretrained model. Watch live bark and thunder scores, review captured events, and export detections as CSV.
         </div>
         <div class="banner">
             <div>
@@ -305,9 +352,19 @@
 
     <section class="grid">
         <div class="card">
-            <span class="label">Live Bark Score</span>
+            <span class="label">Live Detection</span>
             <div class="stack">
-                <div class="score" id="score">--</div>
+                <div class="live-grid">
+                    <div class="mini-score" id="bark-panel">
+                        <span class="label">Bark</span>
+                        <div class="score" id="score">--</div>
+                    </div>
+                    <div class="mini-score" id="thunder-panel">
+                        <span class="label">Thunder</span>
+                        <div class="score" id="thunder-score">--</div>
+                        <div class="storm-copy">Storm watch</div>
+                    </div>
+                </div>
                 <div class="state" id="state">Connecting</div>
                 <div class="status-copy" id="status-copy">
                     Waiting for the first inference window.
@@ -350,6 +407,7 @@
                     <thead>
                         <tr>
                             <th>When</th>
+                            <th>Event</th>
                             <th>Score</th>
                             <th>State</th>
                             <th>Top Class</th>
@@ -360,14 +418,17 @@
                     <tbody id="events-body"></tbody>
                 </table>
             </div>
-            <div class="empty" id="events-empty">No bark events captured yet.</div>
+            <div class="empty" id="events-empty">No bark or thunder events captured yet.</div>
         </div>
     </section>
 </main>
 
 <script>
     const scoreEl = document.getElementById("score");
+    const thunderScoreEl = document.getElementById("thunder-score");
     const stateEl = document.getElementById("state");
+    const barkPanelEl = document.getElementById("bark-panel");
+    const thunderPanelEl = document.getElementById("thunder-panel");
     const scoresEl = document.getElementById("scores");
     const metaEl = document.getElementById("meta");
     const eventsBodyEl = document.getElementById("events-body");
@@ -456,11 +517,23 @@
     function renderMeta(status) {
         metaEl.innerHTML = `
             <div class="row"><span class="muted">Updated</span><strong>${formatTimestamp(status.detected_at)}</strong></div>
-            <div class="row"><span class="muted">Threshold</span><strong>${formatScore(status.threshold)}</strong></div>
+            <div class="row"><span class="muted">Bark threshold</span><strong>${formatScore(status.bark_threshold)}</strong></div>
+            <div class="row"><span class="muted">Thunder threshold</span><strong>${formatScore(status.thunder_threshold)}</strong></div>
             <div class="row"><span class="muted">Mode</span><strong>${status.demo_mode ? "demo" : "live"}</strong></div>
             <div class="row"><span class="muted">Events buffered</span><strong>${(status.recent_events || []).length}</strong></div>
             <div class="row"><span class="muted">CSV</span><strong>${status.events_csv_path || "n/a"}</strong></div>
         `;
+    }
+
+    function eventScore(event) {
+        return event.event_type === "thunder" ? event.thunder_score : event.bark_score;
+    }
+
+    function eventState(score, threshold, type) {
+        if (score >= threshold) {
+            return `<span class="pill ${type === "thunder" ? "storm" : "alert"}">${type === "thunder" ? "Storm" : "Strong"}</span>`;
+        }
+        return `<span class="pill safe">Logged</span>`;
     }
 
     function bestClass(event) {
@@ -468,7 +541,7 @@
         return entries.length ? `${entries[0][0]} ${formatScore(entries[0][1])}` : "n/a";
     }
 
-    function renderEvents(events) {
+    function renderEvents(events, barkThreshold, thunderThreshold) {
         if (!events || !events.length) {
             eventsBodyEl.innerHTML = "";
             eventsEmptyEl.style.display = "block";
@@ -479,8 +552,13 @@
         eventsBodyEl.innerHTML = events.map((event) => `
             <tr>
                 <td>${formatTimestamp(event.detected_at)}</td>
-                <td><strong>${formatScore(event.bark_score)}</strong></td>
-                <td><span class="pill ${event.bark_score >= 0.5 ? "alert" : "safe"}">${event.bark_score >= 0.5 ? "Strong" : "Weak"}</span></td>
+                <td><strong>${event.event_type || "bark"}</strong></td>
+                <td><strong>${formatScore(eventScore(event))}</strong></td>
+                <td>${eventState(
+                    eventScore(event),
+                    event.event_type === "thunder" ? thunderThreshold : barkThreshold,
+                    event.event_type || "bark"
+                )}</td>
                 <td>${bestClass(event)}</td>
                 <td>${event.source}</td>
                 <td>${event.clip_path ? `<a href="/${event.clip_path}" target="_blank" rel="noopener">Open clip</a>` : `<span class="muted">saving…</span>`}</td>
@@ -502,7 +580,7 @@
 
         if (status.is_bark) {
             bannerTitleEl.textContent = "Bark activity detected";
-            bannerCopyEl.textContent = "The latest inference crossed the trigger threshold. Review recent events below.";
+            bannerCopyEl.textContent = "The latest inference crossed the bark threshold. Review recent events below.";
             bannerPillEl.textContent = "Active";
             bannerPillEl.className = "pill alert";
             stateEl.textContent = "Bark Detected";
@@ -511,17 +589,31 @@
             return;
         }
 
+        if (status.is_thunder) {
+            bannerTitleEl.textContent = "Thunder detected";
+            bannerCopyEl.textContent = "The latest inference crossed the thunder threshold. Review recent events below.";
+            bannerPillEl.textContent = "Storm";
+            bannerPillEl.className = "pill storm";
+            stateEl.textContent = "Thunder Detected";
+            stateEl.className = "state storm";
+            statusCopyEl.textContent = "Live inference is healthy and currently above the thunder threshold.";
+            return;
+        }
+
         bannerTitleEl.textContent = "Detector healthy";
-        bannerCopyEl.textContent = "The backend is responding and the live bark score is currently below threshold.";
+        bannerCopyEl.textContent = "The backend is responding and the live bark and thunder scores are currently below threshold.";
         bannerPillEl.textContent = status.demo_mode ? "Demo" : "Live";
         bannerPillEl.className = "pill safe";
         stateEl.textContent = "Quiet";
         stateEl.className = "state";
-        statusCopyEl.textContent = "The system is running normally. Quiet means no current bark trigger, not a failed backend.";
+        statusCopyEl.textContent = "The system is running normally. Quiet means no current bark or thunder trigger, not a failed backend.";
     }
 
     function renderDisconnected(error) {
         scoreEl.textContent = "--";
+        thunderScoreEl.textContent = "--";
+        barkPanelEl.className = "mini-score";
+        thunderPanelEl.className = "mini-score";
         stateEl.textContent = "Backend Unavailable";
         stateEl.className = "state alert";
         statusCopyEl.textContent = "The browser could not get a fresh status update.";
@@ -538,16 +630,23 @@
         hasConnected = true;
 
         scoreEl.textContent = formatScore(status.bark_score);
+        thunderScoreEl.textContent = formatScore(status.thunder_score);
+        barkPanelEl.className = status.is_bark ? "mini-score alert" : "mini-score";
+        thunderPanelEl.className = status.is_thunder ? "mini-score storm" : "mini-score";
         history.push(Number(status.bark_score || 0));
         if (history.length > 80) {
             history.shift();
         }
 
         renderHealth(status);
-        drawTrend(Number(status.threshold || 0));
+        drawTrend(Number(status.bark_threshold || 0));
         renderScores(status.target_scores);
         renderMeta(status);
-        renderEvents(status.recent_events);
+        renderEvents(
+            status.recent_events,
+            Number(status.bark_threshold || 0),
+            Number(status.thunder_threshold || 0),
+        );
         messageEl.textContent = "";
     }
 

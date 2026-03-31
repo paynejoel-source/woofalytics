@@ -1,25 +1,26 @@
 # Woofalytics
 
-Woofalytics is now a small bark-detection runtime built around a pretrained audio-event model instead of a custom training prototype.
+Woofalytics is now a small dog-first sound monitor built around a pretrained audio-event model instead of a custom training prototype.
 
 The scope is intentionally narrow:
 
 - detect barking in live audio
-- save clips around bark events
+- detect thunder in live audio
+- save clips around bark and thunder events
 - expose a simple local dashboard and JSON API
-- export bark events as CSV
-- optionally trigger IFTTT when bark events fire
+- export bark and thunder events as CSV
+- optionally trigger IFTTT when sound events fire
 
 It does not try to classify breed, identity, or emotion.
 
 ## Architecture
 
-The runtime is built around a YAMNet-style bark detector:
+The runtime is built around a YAMNet-style detector:
 
 - live audio capture from the same PoE camera RTSP stream used by BirdNET-Go
 - LiteRT (`ai-edge-litert`) for lightweight TFLite inference
 - sliding inference window at 16 kHz mono
-- pretrained bark-class score thresholding
+- pretrained bark and thunder class score thresholding
 - cooldown gate to avoid trigger spam
 - clip capture with pre-roll and post-roll audio
 - local HTTP dashboard and `/api/status` endpoint
@@ -94,6 +95,7 @@ Common ones:
 - `WOOF_MODEL_PATH=./models/yamnet.tflite`
 - `WOOF_EVENTS_CSV_PATH=./events/events.csv`
 - `WOOF_BARK_THRESHOLD=0.55`
+- `WOOF_THUNDER_THRESHOLD=0.55`
 - `WOOF_CLIP_PRE_SECONDS=8`
 - `WOOF_CLIP_POST_SECONDS=8`
 - `WOOF_TRIGGER_COOLDOWN_SECONDS=8`
@@ -107,7 +109,7 @@ Common ones:
 
 `GET /api/status`
 
-Returns the latest bark score, threshold, bark-state flag, bark-adjacent target scores, and recent events.
+Returns the latest bark score, thunder score, thresholds, current event flag, target scores, and recent events.
 
 `POST /api/record`
 
@@ -115,7 +117,7 @@ Queues a manual clip capture using the current pre-roll and post-roll settings.
 
 `GET /api/events.csv`
 
-Downloads the accumulated bark event log as CSV.
+Downloads the accumulated bark and thunder event log as CSV.
 
 ## Repo Cleanup
 

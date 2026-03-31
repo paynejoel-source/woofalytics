@@ -11,7 +11,9 @@ if TYPE_CHECKING:
 class EventStore:
     HEADERS = [
         "detected_at",
+        "event_type",
         "bark_score",
+        "thunder_score",
         "clip_path",
         "source",
         "top_label",
@@ -45,7 +47,9 @@ class EventStore:
 
                 row = {
                     "detected_at": event.detected_at,
+                    "event_type": event.event_type,
                     "bark_score": f"{event.bark_score:.6f}",
+                    "thunder_score": f"{event.thunder_score:.6f}",
                     "clip_path": event.clip_path or "",
                     "source": event.source,
                     "top_label": top_label,
