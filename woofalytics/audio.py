@@ -134,6 +134,8 @@ class FFmpegAudioCapture:
             "error",
             "-rtsp_transport",
             "tcp",
+            "-allowed_media_types",
+            "audio",
             "-i",
             self._stream_url,
             "-vn",

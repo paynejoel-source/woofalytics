@@ -73,33 +73,25 @@
             margin-top: 18px;
         }
 
-        .live-grid {
+        .sound-grid {
             display: grid;
             gap: 14px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         }
 
-        .mini-score {
+        .sound-card {
             padding: 16px;
             border: 1px solid var(--line);
             border-radius: 18px;
             background: rgba(255,255,255,0.42);
         }
 
-        .mini-score.alert {
+        .sound-card.active {
             border-color: rgba(201, 65, 33, 0.26);
             background: rgba(201, 65, 33, 0.08);
         }
 
-        .mini-score.storm {
-            border-color: rgba(48, 80, 148, 0.28);
-            background:
-                linear-gradient(180deg, rgba(136, 157, 210, 0.18), rgba(87, 116, 184, 0.08)),
-                rgba(255,255,255,0.42);
-            box-shadow: inset 0 0 0 1px rgba(48, 80, 148, 0.05);
-        }
-
-        .mini-score .score {
+        .sound-card .score {
             font-size: 2.6rem;
         }
 
@@ -157,16 +149,6 @@
             font-size: 0.95rem;
             background: rgba(47, 143, 91, 0.12);
             color: var(--safe);
-        }
-
-        .state.alert {
-            background: rgba(201, 65, 33, 0.12);
-            color: var(--alert);
-        }
-
-        .state.storm {
-            background: rgba(67, 97, 168, 0.14);
-            color: #305094;
         }
 
         canvas {
@@ -287,20 +269,9 @@
             background: rgba(31, 42, 44, 0.08);
         }
 
-        .pill.alert {
+        .pill.active {
             background: rgba(201, 65, 33, 0.12);
             color: var(--alert);
-        }
-
-        .pill.storm {
-            background: rgba(67, 97, 168, 0.14);
-            color: #305094;
-        }
-
-        .storm-copy {
-            margin-top: 8px;
-            font-size: 0.85rem;
-            color: #305094;
         }
 
         .pill.safe {
@@ -329,17 +300,16 @@
                 border-radius: 18px;
             }
             .score { font-size: 3rem; }
-            .live-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 <main>
     <section class="hero">
-        <div class="eyebrow">Live Bark And Thunder Monitor</div>
+        <div class="eyebrow">Live Bark And Context Monitor</div>
         <h1>Woofalytics</h1>
         <div class="hero-copy">
-            A dog-first audio monitor built on a pretrained model. Watch live bark and thunder scores, review captured events, and export detections as CSV.
+            A dog-first audio monitor with dynamic sound rules. Watch the active sound stack, review captured clips, and add new event classes as the need arises.
         </div>
         <div class="banner">
             <div>
@@ -354,17 +324,7 @@
         <div class="card">
             <span class="label">Live Detection</span>
             <div class="stack">
-                <div class="live-grid">
-                    <div class="mini-score" id="bark-panel">
-                        <span class="label">Bark</span>
-                        <div class="score" id="score">--</div>
-                    </div>
-                    <div class="mini-score" id="thunder-panel">
-                        <span class="label">Thunder</span>
-                        <div class="score" id="thunder-score">--</div>
-                        <div class="storm-copy">Storm watch</div>
-                    </div>
-                </div>
+                <div class="sound-grid" id="sound-grid"></div>
                 <div class="state" id="state">Connecting</div>
                 <div class="status-copy" id="status-copy">
                     Waiting for the first inference window.
@@ -396,7 +356,7 @@
             <div class="review-head">
                 <div>
                     <span class="label">Event Review</span>
-                    <div class="muted">Recent detections with confidence, source, and clip access.</div>
+                    <div class="muted">Recent sound detections with confidence, source, and clip access.</div>
                 </div>
                 <div class="actions" style="margin-top:0;">
                     <button class="ghost" id="download-inline">Export Detections CSV</button>
@@ -418,17 +378,14 @@
                     <tbody id="events-body"></tbody>
                 </table>
             </div>
-            <div class="empty" id="events-empty">No bark or thunder events captured yet.</div>
+            <div class="empty" id="events-empty">No sound events captured yet.</div>
         </div>
     </section>
 </main>
 
 <script>
-    const scoreEl = document.getElementById("score");
-    const thunderScoreEl = document.getElementById("thunder-score");
+    const soundGridEl = document.getElementById("sound-grid");
     const stateEl = document.getElementById("state");
-    const barkPanelEl = document.getElementById("bark-panel");
-    const thunderPanelEl = document.getElementById("thunder-panel");
     const scoresEl = document.getElementById("scores");
     const metaEl = document.getElementById("meta");
     const eventsBodyEl = document.getElementById("events-body");
@@ -456,6 +413,20 @@
             return value;
         }
         return parsed.toLocaleString();
+    }
+
+    function bestSoundThreshold(sounds) {
+        if (!Array.isArray(sounds) || !sounds.length) {
+            return 0;
+        }
+        return Math.max(...sounds.map((sound) => Number(sound.threshold || 0)));
+    }
+
+    function topScore(sounds) {
+        if (!Array.isArray(sounds) || !sounds.length) {
+            return 0;
+        }
+        return Math.max(...sounds.map((sound) => Number(sound.score || 0)));
     }
 
     function drawTrend(threshold) {
@@ -503,6 +474,21 @@
         trendCtx.stroke();
     }
 
+    function renderSoundGrid(sounds) {
+        if (!Array.isArray(sounds) || !sounds.length) {
+            soundGridEl.innerHTML = `<div class="muted">No sound rules configured.</div>`;
+            return;
+        }
+
+        soundGridEl.innerHTML = sounds.map((sound) => `
+            <div class="sound-card ${sound.is_active ? "active" : ""}">
+                <span class="label">${sound.label}</span>
+                <div class="score">${formatScore(sound.score)}</div>
+                <div class="muted">Threshold ${formatScore(sound.threshold)}</div>
+            </div>
+        `).join("");
+    }
+
     function renderScores(targetScores) {
         const entries = Object.entries(targetScores || {}).sort((a, b) => b[1] - a[1]);
         scoresEl.innerHTML = entries.length
@@ -515,23 +501,22 @@
     }
 
     function renderMeta(status) {
+        const sounds = status.sounds || [];
+        const thresholdRows = sounds.map((sound) => `
+            <div class="row"><span class="muted">${sound.label} threshold</span><strong>${formatScore(sound.threshold)}</strong></div>
+        `).join("");
         metaEl.innerHTML = `
             <div class="row"><span class="muted">Updated</span><strong>${formatTimestamp(status.detected_at)}</strong></div>
-            <div class="row"><span class="muted">Bark threshold</span><strong>${formatScore(status.bark_threshold)}</strong></div>
-            <div class="row"><span class="muted">Thunder threshold</span><strong>${formatScore(status.thunder_threshold)}</strong></div>
+            ${thresholdRows}
             <div class="row"><span class="muted">Mode</span><strong>${status.demo_mode ? "demo" : "live"}</strong></div>
             <div class="row"><span class="muted">Recent detections</span><strong>${(status.recent_events || []).length}</strong></div>
             <div class="row"><span class="muted">Export file</span><strong>${status.events_csv_path || "n/a"}</strong></div>
         `;
     }
 
-    function eventScore(event) {
-        return event.event_type === "thunder" ? event.thunder_score : event.bark_score;
-    }
-
-    function eventState(score, threshold, type) {
-        if (score >= threshold) {
-            return `<span class="pill ${type === "thunder" ? "storm" : "alert"}">${type === "thunder" ? "Storm" : "Strong"}</span>`;
+    function eventState(event) {
+        if (Number(event.event_score || 0) >= Number(event.threshold || 0)) {
+            return `<span class="pill active">Triggered</span>`;
         }
         return `<span class="pill safe">Logged</span>`;
     }
@@ -541,27 +526,24 @@
         return entries.length ? `${entries[0][0]} ${formatScore(entries[0][1])}` : "n/a";
     }
 
-    function renderEvents(events, barkThreshold, thunderThreshold) {
+    function renderEvents(events, sounds) {
         if (!events || !events.length) {
             eventsBodyEl.innerHTML = "";
             eventsEmptyEl.style.display = "block";
             return;
         }
 
+        const thresholdByKey = new Map((sounds || []).map((sound) => [sound.key, Number(sound.threshold || 0)]));
         eventsEmptyEl.style.display = "none";
         eventsBodyEl.innerHTML = events.map((event) => `
             <tr>
                 <td>${formatTimestamp(event.detected_at)}</td>
-                <td><strong>${event.event_type || "bark"}</strong></td>
-                <td><strong>${formatScore(eventScore(event))}</strong></td>
-                <td>${eventState(
-                    eventScore(event),
-                    event.event_type === "thunder" ? thunderThreshold : barkThreshold,
-                    event.event_type || "bark"
-                )}</td>
+                <td><strong>${event.event_label || event.event_type || "Manual"}</strong></td>
+                <td><strong>${formatScore(event.event_score)}</strong></td>
+                <td>${eventState({ ...event, threshold: thresholdByKey.get(event.event_type) || 0 })}</td>
                 <td>${bestClass(event)}</td>
                 <td>${event.source}</td>
-                <td>${event.clip_path ? `<a href="/${event.clip_path}" target="_blank" rel="noopener">Open clip</a>` : `<span class="muted">saving…</span>`}</td>
+                <td>${event.clip_url ? `<a href="${event.clip_url}" target="_blank" rel="noopener">Open clip</a>` : `<span class="muted">saving…</span>`}</td>
             </tr>
         `).join("");
     }
@@ -578,49 +560,35 @@
             return;
         }
 
-        if (status.is_bark) {
-            bannerTitleEl.textContent = "Bark activity detected";
-            bannerCopyEl.textContent = "The latest inference crossed the bark threshold. Review recent events below.";
+        if (status.event_type && status.event_label) {
+            bannerTitleEl.textContent = `${status.event_label} detected`;
+            bannerCopyEl.textContent = "The latest inference crossed an active sound threshold. Review recent events below.";
             bannerPillEl.textContent = "Active";
-            bannerPillEl.className = "pill alert";
-            stateEl.textContent = "Bark Detected";
-            stateEl.className = "state alert";
+            bannerPillEl.className = "pill active";
+            stateEl.textContent = `${status.event_label} Detected`;
+            stateEl.className = "state";
             statusCopyEl.textContent = "Live inference is healthy and currently above threshold.";
             return;
         }
 
-        if (status.is_thunder) {
-            bannerTitleEl.textContent = "Thunder detected";
-            bannerCopyEl.textContent = "The latest inference crossed the thunder threshold. Review recent events below.";
-            bannerPillEl.textContent = "Storm";
-            bannerPillEl.className = "pill storm";
-            stateEl.textContent = "Thunder Detected";
-            stateEl.className = "state storm";
-            statusCopyEl.textContent = "Live inference is healthy and currently above the thunder threshold.";
-            return;
-        }
-
         bannerTitleEl.textContent = "Detector healthy";
-        bannerCopyEl.textContent = "The backend is responding and the live bark and thunder scores are currently below threshold.";
+        bannerCopyEl.textContent = "The backend is responding and all current sound scores are below threshold.";
         bannerPillEl.textContent = status.demo_mode ? "Demo" : "Live";
         bannerPillEl.className = "pill safe";
         stateEl.textContent = "Quiet";
         stateEl.className = "state";
-        statusCopyEl.textContent = "The system is running normally. Quiet means no current bark or thunder trigger, not a failed backend.";
+        statusCopyEl.textContent = "The system is running normally. Quiet means no current sound trigger.";
     }
 
     function renderDisconnected(error) {
-        scoreEl.textContent = "--";
-        thunderScoreEl.textContent = "--";
-        barkPanelEl.className = "mini-score";
-        thunderPanelEl.className = "mini-score";
+        soundGridEl.innerHTML = `<div class="muted">Backend unavailable.</div>`;
         stateEl.textContent = "Backend Unavailable";
-        stateEl.className = "state alert";
+        stateEl.className = "state";
         statusCopyEl.textContent = "The browser could not get a fresh status update.";
         bannerTitleEl.textContent = "Backend not responding";
         bannerCopyEl.textContent = "The page loaded, but the local service did not return status in time.";
         bannerPillEl.textContent = "Offline";
-        bannerPillEl.className = "pill alert";
+        bannerPillEl.className = "pill active";
         messageEl.textContent = error.message;
     }
 
@@ -629,24 +597,18 @@
         const status = await response.json();
         hasConnected = true;
 
-        scoreEl.textContent = formatScore(status.bark_score);
-        thunderScoreEl.textContent = formatScore(status.thunder_score);
-        barkPanelEl.className = status.is_bark ? "mini-score alert" : "mini-score";
-        thunderPanelEl.className = status.is_thunder ? "mini-score storm" : "mini-score";
-        history.push(Number(status.bark_score || 0));
+        const sounds = status.sounds || [];
+        renderSoundGrid(sounds);
+        history.push(topScore(sounds));
         if (history.length > 80) {
             history.shift();
         }
 
         renderHealth(status);
-        drawTrend(Number(status.bark_threshold || 0));
+        drawTrend(bestSoundThreshold(sounds));
         renderScores(status.target_scores);
         renderMeta(status);
-        renderEvents(
-            status.recent_events,
-            Number(status.bark_threshold || 0),
-            Number(status.thunder_threshold || 0),
-        );
+        renderEvents(status.recent_events, sounds);
         messageEl.textContent = "";
     }
 

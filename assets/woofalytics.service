@@ -1,0 +1,29 @@
+[Unit]
+Description=Woofalytics audio monitor
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/joel/woofalytics
+Environment=WOOF_PORT=8015
+EnvironmentFile=-%h/.config/woofalytics.env
+ExecStart=/home/joel/woofalytics/venv/bin/python /home/joel/woofalytics/main.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+KillMode=mixed
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=default.target
