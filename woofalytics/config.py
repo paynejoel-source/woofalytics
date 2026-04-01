@@ -52,7 +52,7 @@ class AppConfig:
     audio_source: str = os.getenv("WOOF_AUDIO_SOURCE", "ffmpeg")
     # Default to the Frigate substream so bark detection does not compete with
     # Frigate's record path on the primary stream.
-    stream_url: str = os.getenv("WOOF_STREAM_URL", "rtsp://127.0.0.1:8554/front_yard_sub")
+    stream_url: str = os.getenv("WOOF_STREAM_URL", "rtsp://127.0.0.1:8554/camera_audio_sub")
     ffmpeg_path: str = os.getenv("WOOF_FFMPEG_PATH", "/usr/bin/ffmpeg")
     sample_rate: int = int(os.getenv("WOOF_SAMPLE_RATE", "16000"))
     channels: int = int(os.getenv("WOOF_CHANNELS", "1"))
