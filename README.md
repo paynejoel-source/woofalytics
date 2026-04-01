@@ -1,5 +1,7 @@
 # Woofalytics
 
+Original project credit belongs to [mdoulaty](https://github.com/mdoulaty), the original author of Woofalytics. This repository is a derivative continuation of that work for the current local deployment.
+
 Woofalytics is now a small dog-first sound monitor built around a pretrained audio-event model instead of a custom training prototype.
 
 The scope is intentionally narrow:
