@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "woofalytics"
 version = "0.1.0"
-description = "Dog-first local audio event monitoring built around a pretrained YAMNet-style detector."
+description = "Redesigned derivative of Woofalytics for local dog-first audio event monitoring, with original work credited to Mortaza (Morrie) Doulaty."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 license = {text = "MIT"}
@@ -44,6 +44,8 @@ woofalytics-download-model = "woofalytics.model:main"
 Homepage = "https://github.com/paynejoel-source/woofalytics"
 Repository = "https://github.com/paynejoel-source/woofalytics"
 Issues = "https://github.com/paynejoel-source/woofalytics/issues"
+"Original Project" = "https://github.com/mdoulaty/woofalytics"
+"Derivative Maintainer" = "https://github.com/paynejoel-source"
 
 [tool.setuptools]
 include-package-data = true

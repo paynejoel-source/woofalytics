@@ -2,6 +2,11 @@
 
 Original project credit belongs to [mdoulaty](https://github.com/mdoulaty), the original author of Woofalytics. This repository is a derivative continuation of that work.
 
+Credit split:
+
+- original Woofalytics concept and upstream work: `mdoulaty`
+- redesign, packaging, deployment hardening, and derivative maintenance in this repo: `paynejoel-source`
+
 Woofalytics is now a small dog-first sound monitor built around a pretrained audio-event model instead of a custom training prototype.
 
 The scope is intentionally narrow:
@@ -42,6 +47,8 @@ For an editable local development install:
 ```shell
 python -m pip install -e .
 ```
+
+The package metadata credits the original author and keeps this repo as the maintained derivative.
 
 ## Dependencies
 
@@ -172,6 +179,20 @@ Queues a manual clip capture using the current pre-roll and post-roll settings.
 `GET /api/events.csv`
 
 Downloads the accumulated sound event log as CSV.
+
+## Publishing
+
+The package metadata keeps credit on the original Woofalytics author:
+
+- author: Mortaza (Morrie) Doulaty
+- derivative maintainer and redesign credit: `paynejoel-source`
+- original project link: `https://github.com/mdoulaty/woofalytics`
+
+This repo is set up for PyPI trusted publishing from GitHub Actions. The workflow lives at:
+
+- `.github/workflows/publish-pypi.yml`
+
+To activate it on PyPI, add this repository as a trusted publisher for the `woofalytics` project, then run the workflow manually or publish a version tag.
 
 ## Repo Cleanup
 
