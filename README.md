@@ -1,6 +1,6 @@
 # Woofalytics
 
-Original project credit belongs to [mdoulaty](https://github.com/mdoulaty), the original author of Woofalytics. This repository is a derivative continuation of that work for the current local deployment.
+Original project credit belongs to [mdoulaty](https://github.com/mdoulaty), the original author of Woofalytics. This repository is a derivative continuation of that work.
 
 Woofalytics is now a small dog-first sound monitor built around a pretrained audio-event model instead of a custom training prototype.
 
@@ -29,6 +29,20 @@ The runtime is built around a YAMNet-style detector:
 - local HTTP dashboard and `/api/status` endpoint
 - CSV export at `/api/events.csv`
 
+## Install
+
+For package-style installation from the repo root:
+
+```shell
+python -m pip install .
+```
+
+For an editable local development install:
+
+```shell
+python -m pip install -e .
+```
+
 ## Dependencies
 
 Install system audio packages first:
@@ -38,48 +52,41 @@ sudo apt update
 sudo apt install build-essential libportaudio2 libasound2-dev python3-pyaudio
 ```
 
-`ffmpeg` is also required for RTSP ingest. BirdNET-Go is already configured on this machine to use:
+`ffmpeg` is also required for RTSP ingest. A typical local go2rtc/Frigate audio source looks like:
 
 ```text
-rtsp://127.0.0.1:8554/front_yard
+rtsp://127.0.0.1:8554/camera_audio
 ```
 
-Woofalytics should use the Frigate substream by default so it does not share the
-main recording path:
+Woofalytics should use a substream by default so it does not share the main recording path:
 
 ```text
-rtsp://127.0.0.1:8554/front_yard_sub
+rtsp://127.0.0.1:8554/camera_audio_sub
 ```
 
-Create a virtualenv:
+Create a virtualenv if you do not already have one:
 
 ```shell
 /usr/bin/python3 -m venv venv
 source venv/bin/activate
 ```
 
-Install dependencies:
-
-```shell
-pip install -r requirements.txt
-```
-
 Download the pretrained YAMNet TFLite model:
 
 ```shell
-python scripts/download_yamnet.py
+woofalytics-download-model
 ```
 
 Run a quick diagnostic:
 
 ```shell
-python scripts/check_setup.py
+woofalytics-check-setup
 ```
 
 If you only want to review the UI or smoke-test the app path without audio hardware, run demo mode:
 
 ```shell
-WOOF_DEMO_MODE=1 python main.py
+WOOF_DEMO_MODE=1 woofalytics
 ```
 
 ## Running
@@ -87,8 +94,10 @@ WOOF_DEMO_MODE=1 python main.py
 Start the monitor:
 
 ```shell
-python main.py
+woofalytics
 ```
+
+The repo still includes `main.py` and the `scripts/` wrappers for compatibility with the current local deployment.
 
 Open the dashboard at `http://127.0.0.1:8015` if you use the Desktop launcher, or at the port you set in `WOOF_PORT`.
 
@@ -108,7 +117,7 @@ Common ones:
 
 - `WOOF_PORT=8015`
 - `WOOF_AUDIO_SOURCE=ffmpeg`
-- `WOOF_STREAM_URL=rtsp://127.0.0.1:8554/front_yard_sub`
+- `WOOF_STREAM_URL=rtsp://127.0.0.1:8554/camera_audio_sub`
 - `WOOF_FFMPEG_PATH=/usr/bin/ffmpeg`
 - `WOOF_MODEL_PATH=./models/yamnet.tflite`
 - `WOOF_EVENTS_CSV_PATH=./events/events.csv`
@@ -122,7 +131,7 @@ Common ones:
 - `WOOF_TRIGGER_COOLDOWN_SECONDS=8`
 - `WOOF_CAPTURE_STALL_SECONDS=15`
 - `WOOF_EXTRA_SOUNDS_JSON=[{"label":"Chainsaw","threshold":0.7,"target_indices":[390],"target_labels":{"390":"chainsaw"}}]`
-- `WOOF_DEVICE_NAME_HINT=Andrea PureAudio`
+- `WOOF_DEVICE_NAME_HINT=USB audio device`
 - `WOOF_INPUT_DEVICE_INDEX=2`
 - `WOOF_IFTTT_EVENT_NAME=woof`
 - `WOOF_IFTTT_KEY=...`
@@ -165,5 +174,11 @@ Queues a manual clip capture using the current pre-roll and post-roll settings.
 Downloads the accumulated sound event log as CSV.
 
 ## Repo Cleanup
+
+The repo is now split more cleanly between:
+
+- the installable Python package under `woofalytics/`
+- optional local deployment assets under `assets/`
+- compatibility wrappers under `main.py` and `scripts/`
 
 The old Torch model files, notebook workflow, and handwritten direction-of-arrival code are no longer part of the runtime design. If you still want a research or training workflow later, it should live in a separate training package instead of the production detector.

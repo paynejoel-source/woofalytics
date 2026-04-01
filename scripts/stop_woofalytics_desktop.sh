@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/home/joel/woofalytics"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT/logs"
 LOG_FILE="$LOG_DIR/desktop-launch.log"
 UNIT_NAME="woofalytics.service"

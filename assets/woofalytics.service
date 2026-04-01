@@ -4,10 +4,10 @@ After=default.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/joel/woofalytics
+WorkingDirectory=%h/woofalytics
 Environment=WOOF_PORT=8015
 EnvironmentFile=-%h/.config/woofalytics.env
-ExecStart=/home/joel/woofalytics/venv/bin/python /home/joel/woofalytics/main.py
+ExecStart=%h/woofalytics/venv/bin/python %h/woofalytics/main.py
 Restart=always
 RestartSec=5
 TimeoutStopSec=10

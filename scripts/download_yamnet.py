@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
+import sys
 from pathlib import Path
-from urllib.request import urlopen
 
 
-MODEL_URL = "https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1?lite-format=tflite"
-DESTINATION = Path(__file__).resolve().parent.parent / "models" / "yamnet.tflite"
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-
-def main() -> int:
-    DESTINATION.parent.mkdir(parents=True, exist_ok=True)
-    with urlopen(MODEL_URL, timeout=30) as response:
-        DESTINATION.write_bytes(response.read())
-    print(f"Downloaded YAMNet model to {DESTINATION}")
-    return 0
+from woofalytics.model import main
 
 
 if __name__ == "__main__":

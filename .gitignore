@@ -168,3 +168,4 @@ events/
 logs/
 models/*.tflite
 .woofalytics-desktop.pid
+.woofalytics-desktop.lock

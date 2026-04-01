@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/home/joel/woofalytics"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${WOOF_PORT:-8015}"
 OPEN_BROWSER="${WOOF_OPEN_BROWSER:-1}"
 LOG_DIR="$ROOT/logs"

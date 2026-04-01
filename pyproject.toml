@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "woofalytics"
+version = "0.1.0"
+description = "Dog-first local audio event monitoring built around a pretrained YAMNet-style detector."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
+authors = [
+  {name = "Mortaza (Morrie) Doulaty"},
+]
+maintainers = [
+  {name = "paynejoel-source"},
+]
+dependencies = [
+  "numpy>=2.2,<3",
+  "ai-edge-litert==2.1.2",
+  "PyAudio==0.2.14",
+]
+keywords = ["audio", "monitoring", "yamnet", "dogs", "frigate"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Sound/Audio :: Analysis",
+]
+
+[project.scripts]
+woofalytics = "woofalytics.app:main"
+woofalytics-check-setup = "woofalytics.diagnostics:main"
+woofalytics-download-model = "woofalytics.model:main"
+
+[project.urls]
+Homepage = "https://github.com/paynejoel-source/woofalytics"
+Repository = "https://github.com/paynejoel-source/woofalytics"
+Issues = "https://github.com/paynejoel-source/woofalytics/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["woofalytics*"]
+
+[tool.setuptools.package-data]
+woofalytics = ["web/index.html"]
