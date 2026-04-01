@@ -47,7 +47,13 @@ class SoundInference:
 
     @property
     def active_sounds(self) -> tuple[SoundMatch, ...]:
-        return tuple(sound for sound in self.sounds if sound.is_active)
+        active = [sound for sound in self.sounds if sound.is_active]
+        sound_by_key = {sound.key: sound for sound in active}
+        aircraft = sound_by_key.get("aircraft")
+        thunder = sound_by_key.get("thunder")
+        if aircraft and thunder and aircraft.score >= thunder.score:
+            active = [sound for sound in active if sound.key != "thunder"]
+        return tuple(active)
 
     @property
     def event_score(self) -> float:
@@ -116,10 +122,7 @@ class YamnetTFLiteBarkDetector:
                 )
             )
 
-        event_type = None
-        for match in matches:
-            if match.is_active:
-                event_type = match.key
-                break
-
+        inference = SoundInference(sounds=tuple(matches), event_type=None)
+        active_sounds = inference.active_sounds
+        event_type = active_sounds[0].key if active_sounds else None
         return SoundInference(sounds=tuple(matches), event_type=event_type)

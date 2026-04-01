@@ -68,11 +68,15 @@ class PendingClip:
         post_samples: int,
         source: str,
         pending_key: str,
+        clip_label: str,
+        detected_at: dt.datetime,
     ):
         self.chunks = [chunk.copy() for chunk in prefix_chunks]
         self.remaining_samples = post_samples
         self.source = source
         self.pending_key = pending_key
+        self.clip_label = clip_label
+        self.detected_at = detected_at
 
     def append(self, chunk: np.ndarray) -> bool:
         self.chunks.append(chunk.copy())
@@ -181,7 +185,7 @@ class BarkMonitor:
             return {"ok": False, "message": "Manual clip capture is disabled."}
 
         pending_key = self._next_pending_key()
-        self._begin_clip_capture("manual", pending_key)
+        self._begin_clip_capture("manual", pending_key, clip_label="manual")
         self._record_manual_event(pending_key)
         return {"ok": True, "message": "Manual clip capture queued."}
 
@@ -227,7 +231,11 @@ class BarkMonitor:
                 )
                 if triggered_sounds:
                     pending_key = self._next_pending_key()
-                    self._begin_clip_capture("auto", pending_key)
+                    self._begin_clip_capture(
+                        "auto",
+                        pending_key,
+                        clip_label=triggered_sounds[0].key,
+                    )
                     for sound in triggered_sounds:
                         self._record_event(sound, inference, None, "auto", pending_key)
                     self._send_ifttt_event(inference)
@@ -319,10 +327,9 @@ class BarkMonitor:
                 )
 
             event_type = None
-            for sound in sounds:
-                if sound.is_active:
-                    event_type = sound.key
-                    break
+            provisional = SoundInference(sounds=tuple(sounds), event_type=None)
+            if provisional.active_sounds:
+                event_type = provisional.active_sounds[0].key
             inference = SoundInference(sounds=tuple(sounds), event_type=event_type)
             self._mark_chunk_received()
             self._update_status(inference)
@@ -333,7 +340,11 @@ class BarkMonitor:
             )
             if triggered_sounds:
                 pending_key = self._next_pending_key()
-                self._begin_demo_clip_capture("auto", pending_key)
+                self._begin_demo_clip_capture(
+                    "auto",
+                    pending_key,
+                    clip_label=triggered_sounds[0].key,
+                )
                 for sound in triggered_sounds:
                     self._record_event(sound, inference, None, "auto", pending_key)
             time.sleep(max(self._config.inference_hop_seconds, 0.5))
@@ -361,7 +372,11 @@ class BarkMonitor:
 
         for pending in finished:
             self._pending_clips.remove(pending)
-            clip_path = self._write_clip(pending.chunks)
+            clip_path = self._write_clip(
+                pending.chunks,
+                clip_label=pending.clip_label,
+                detected_at=pending.detected_at,
+            )
             self._record_or_patch_event(clip_path, pending.source, pending.pending_key)
 
     def _recent_prefix_chunks(self) -> list[np.ndarray]:
@@ -378,27 +393,52 @@ class BarkMonitor:
                 break
         return list(reversed(selected))
 
-    def _begin_clip_capture(self, source: str, pending_key: str) -> None:
+    def _begin_clip_capture(
+        self,
+        source: str,
+        pending_key: str,
+        clip_label: str,
+    ) -> None:
         pending = PendingClip(
             prefix_chunks=self._recent_prefix_chunks(),
             post_samples=self._config.clip_post_samples,
             source=source,
             pending_key=pending_key,
+            clip_label=self._safe_clip_label(clip_label),
+            detected_at=dt.datetime.now().astimezone(),
         )
         self._pending_clips.append(pending)
 
-    def _begin_demo_clip_capture(self, source: str, pending_key: str) -> Path:
+    def _begin_demo_clip_capture(
+        self,
+        source: str,
+        pending_key: str,
+        clip_label: str,
+    ) -> Path:
         duration = int(self._config.sample_rate * max(self._config.clip_post_seconds, 2))
         timeline = np.arange(duration, dtype=np.float32) / self._config.sample_rate
         waveform = 0.2 * np.sin(2 * np.pi * 440 * timeline)
         envelope = np.where((timeline % 0.45) < 0.08, 1.0, 0.0)
         audio = (waveform * envelope * np.iinfo(np.int16).max).astype(np.int16)
-        clip_path = self._write_clip([audio])
+        clip_path = self._write_clip(
+            [audio],
+            clip_label=self._safe_clip_label(clip_label),
+            detected_at=dt.datetime.now().astimezone(),
+        )
         self._record_or_patch_event(clip_path, source, pending_key)
         return clip_path
 
-    def _write_clip(self, chunks: list[np.ndarray]) -> Path:
-        path = self._config.clips_dir / f"{time.time_ns()}.wav"
+    def _write_clip(
+        self,
+        chunks: list[np.ndarray],
+        *,
+        clip_label: str,
+        detected_at: dt.datetime,
+    ) -> Path:
+        timestamp = detected_at.astimezone().strftime("%Y-%m-%d_%H-%M-%S")
+        path = self._config.clips_dir / (
+            f"{timestamp}_{clip_label}_{time.time_ns()}.wav"
+        )
         merged = np.concatenate(chunks) if chunks else np.array([], dtype=np.int16)
         with wave.open(str(path), "wb") as handle:
             handle.setnchannels(1)
@@ -550,7 +590,7 @@ class BarkMonitor:
 
     def _legacy_sound_payload(self) -> dict[str, object]:
         payload: dict[str, object] = {}
-        for key in ("bark", "thunder", "train_whistle", "speech"):
+        for key in ("bark", "thunder", "train_whistle", "aircraft", "speech"):
             sound = self._sound_for_key(self._status.sounds, key)
             payload[f"{key}_score"] = sound.score if sound else 0.0
             payload[f"{key}_threshold"] = sound.threshold if sound else 0.0
@@ -609,3 +649,12 @@ class BarkMonitor:
 
     def _next_pending_key(self) -> str:
         return str(time.time_ns())
+
+    def _safe_clip_label(self, value: str) -> str:
+        normalized = "".join(
+            char.lower() if char.isalnum() else "_"
+            for char in value.strip()
+        ).strip("_")
+        while "__" in normalized:
+            normalized = normalized.replace("__", "_")
+        return normalized or "event"

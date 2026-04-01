@@ -71,6 +71,7 @@ class AppConfig:
     train_whistle_threshold: float = float(
         os.getenv("WOOF_TRAIN_WHISTLE_THRESHOLD", "0.60")
     )
+    aircraft_threshold: float = float(os.getenv("WOOF_AIRCRAFT_THRESHOLD", "0.70"))
     speech_threshold: float = float(os.getenv("WOOF_SPEECH_THRESHOLD", "0.75"))
     trigger_cooldown_seconds: float = float(
         os.getenv("WOOF_TRIGGER_COOLDOWN_SECONDS", "8")
@@ -103,6 +104,11 @@ class AppConfig:
     def train_whistle_class_indices(self) -> tuple[int, ...]:
         # YAMNet AudioSet label index for train whistle.
         return (324,)
+
+    @property
+    def aircraft_class_indices(self) -> tuple[int, ...]:
+        # YAMNet AudioSet label indices for aircraft and helicopter sounds.
+        return (329, 330, 331, 332, 333, 334)
 
     @property
     def speech_class_indices(self) -> tuple[int, ...]:
@@ -144,6 +150,20 @@ class AppConfig:
                 target_indices=self.train_whistle_class_indices,
                 target_labels={
                     324: "train whistle",
+                },
+            ),
+            SoundRule(
+                key="aircraft",
+                label="Aircraft",
+                threshold=self.aircraft_threshold,
+                target_indices=self.aircraft_class_indices,
+                target_labels={
+                    329: "aircraft",
+                    330: "aircraft engine",
+                    331: "jet engine",
+                    332: "propeller",
+                    333: "helicopter",
+                    334: "fixed-wing aircraft",
                 },
             ),
             SoundRule(
